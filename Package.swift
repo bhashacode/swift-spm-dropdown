@@ -1,10 +1,10 @@
-// swift-tools-version:5.3
+// swift-tools-version:5.9
 import PackageDescription
 
 let package = Package(
     name: "DropDown",
     platforms: [
-        .iOS(.v9)
+        .iOS(.v15)
     ],
     products: [
         .library(
@@ -15,11 +15,11 @@ let package = Package(
     targets: [
         .target(
             name: "DropDown",
-            dependencies: [],
             path: "DropDown",
             exclude: ["Info.plist", "DropDown.h"],
+            sources: ["src", "helpers"],
             resources: [
-              .process("DropDown/resources")
+                .process("resources")
             ]
         )
     ],
