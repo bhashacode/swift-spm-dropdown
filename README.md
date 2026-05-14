@@ -3,8 +3,6 @@
 [![Twitter: @kevinh6113](http://img.shields.io/badge/contact-%40kevinh6113-70a1fb.svg?style=flat)](https://twitter.com/kevinh6113)
 [![License: MIT](http://img.shields.io/badge/license-MIT-70a1fb.svg?style=flat)](https://github.com/AssistoLab/DropDown/blob/master/README.md)
 [![Version](http://img.shields.io/badge/version-2.3.13-green.svg?style=flat)](https://github.com/AssistoLab/DropDown)
-[![Cocoapods](http://img.shields.io/badge/Cocoapods-available-green.svg?style=flat)](http://cocoadocs.org/docsets/DropDown/)
-[![Carthage compatible](https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat)](https://github.com/Carthage/Carthage)
 
 
 A Material Design drop down for iOS written in Swift.
@@ -16,57 +14,25 @@ A Material Design drop down for iOS written in Swift.
 
 ## Demo
 
-Do `pod try DropDown` in your console and run the project to try a demo.
-To install [CocoaPods](http://www.cocoapods.org), run `sudo gem install cocoapods` in your console.
+Open `DropDown.xcodeproj` and run the `DropDown` demo scheme.
 
 ## Installation 📱
 
-`DropDown` supports Swift 5.0 since version `2.3.13`.
-`DropDown` supports Swift 4.2 since version `2.3.4`.
+`DropDown` supports Swift 5.
 
-If you need Swift 4.0, use version 2.3.2:
-- Manually: use tag `2.3.2`
-- CocoaPods: `pod 'DropDown', '2.3.2'`
-- Carthage: `github "AssistoLab/DropDown" == 2.3.2`
+### Swift Package Manager
 
-### CocoaPods
+In Xcode:
 
-Use [CocoaPods](http://www.cocoapods.org).
+1. Open your project.
+2. Go to **File > Add Package Dependencies**.
+3. Enter this repository URL.
+4. Select the required version, branch, or commit.
+5. Add the `DropDown` package product to your app target.
 
-1. Add `pod 'DropDown'` to your *Podfile*.
-2. Install the pod(s) by running `pod install`.
-3. Add `import DropDown` in the .swift files where you want to use it
+If your fork does not have release tags yet, pin the `main` branch or a specific commit SHA until your first tag is published.
 
-### Carthage
-
-Use [Carthage](https://github.com/Carthage/Carthage).
-
-1. Create a file name `Cartfile`.
-2. Add the line `github "AssistoLab/DropDown"`.
-3. Run `carthage update`.
-4. Drag the built `DropDown.framework` into your Xcode project.
-
-### Source files
-
-A regular way to use DropDown in your project would be using Embedded Framework. There are two approaches, using source code and adding submodule.
-
-Add source code:
-
-1. Download the [latest code version](http://github.com/AssistoLab/DropDown/archive/master.zip).
-2. Unzip the download file, copy `DropDown` folder to your project folder
-
-Add submodule
-
-1. In your favorite terminal, `cd` into your top-level project directory, and entering the following command:
-``` bash
-$ git submodule add git@github.com:AssistoLab/DropDown.git
-```
-
-After you get the source code either by adding it directly or using submodule, then do the following steps:
-
-- Open `DropDown` folder, and drag `DropDown.xcodeproj` into the file navigator of your app project, under you app project.
-- In Xcode, navigate to the target configuration window by clicking the blue project icon, and selecting the application target under the "Targets" heading in the sidebar.
-- Open "Build Phases" panel in the tab bar at the top of the window, expend the "Target Dependencies" group and add `DropDown.framework` under DropDown icon in the popup window by clicking `+`. Similarly, you can also add `DropDown.framework` in "Embedded Binaries" under "General" tab.
+Minimum supported iOS runtime version: **15.6**.
 
 ## Basic usage ✨
 
