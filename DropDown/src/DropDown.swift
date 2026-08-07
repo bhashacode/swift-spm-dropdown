@@ -83,6 +83,7 @@ public final class DropDown: UIView {
 	//MARK: UI
 	fileprivate let dismissableView = UIView()
 	fileprivate let tableViewContainer = UIView()
+	fileprivate let backgroundEffectView = DPDGlassBackgroundView(effect: nil)
 	fileprivate let tableView = UITableView()
 	fileprivate var templateCell: DropDownCell!
     fileprivate lazy var arrowIndication: UIImageView = {
@@ -163,7 +164,7 @@ public final class DropDown: UIView {
 		didSet {
 			if let arrowIndicationX = arrowIndicationX {
 				tableViewContainer.addSubview(arrowIndication)
-				arrowIndication.tintColor = tableViewBackgroundColor
+				arrowIndication.tintColor = arrowTintColor(forBackgroundColor: tableViewBackgroundColor)
 				arrowIndication.frame.origin.x = arrowIndicationX
 			} else {
 				arrowIndication.removeFromSuperview()
@@ -183,11 +184,60 @@ public final class DropDown: UIView {
 		didSet { reloadAllComponents() }
 	}
 
+	/**
+	The global default for `isGlassEnabled`. Set it before creating any drop down.
+	*/
+	public static var isGlassEnabled = true
+
+	/**
+	Whether the drop down renders its background with Liquid Glass.
+
+	On iOS versions without Liquid Glass, a blur material is used instead.
+	Enabling glass seeds the appearance with glass-tuned defaults, so set it
+	before customizing colors.
+	*/
+	public var isGlassEnabled = DropDown.isGlassEnabled {
+		didSet {
+			guard isGlassEnabled != oldValue else { return }
+
+			applyAppearanceDefaults()
+			updateGlassBackground()
+		}
+	}
+
+	/**
+	The global default for `glassStyle`.
+	*/
+	public static var glassStyle = GlassStyle.regular
+
+	/**
+	The glass material of the drop down. Only used when `isGlassEnabled` is `true`.
+	*/
+	public var glassStyle = DropDown.glassStyle {
+		didSet { updateGlassBackground() }
+	}
+
+	/**
+	A color blended into the glass. `nil` leaves the glass untinted.
+
+	Before iOS 26 the tint is clamped to stay translucent so the material remains visible.
+	*/
+	public var glassTintColor = DPDConstant.UI.Glass.TintColor {
+		didSet { updateGlassBackground() }
+	}
+
 	@objc fileprivate dynamic var tableViewBackgroundColor = DPDConstant.UI.BackgroundColor {
 		willSet {
             tableView.backgroundColor = newValue
-            if arrowIndicationX != nil { arrowIndication.tintColor = newValue }
+            if arrowIndicationX != nil { arrowIndication.tintColor = arrowTintColor(forBackgroundColor: newValue) }
         }
+	}
+
+	/// The glass is translucent, so the arrow can't simply match the table's background color.
+	fileprivate func arrowTintColor(forBackgroundColor backgroundColor: UIColor) -> UIColor {
+		guard isGlassEnabled else { return backgroundColor }
+
+		return glassTintColor ?? DPDConstant.UI.Glass.ArrowTintColor
 	}
 
 	public override var backgroundColor: UIColor? {
@@ -229,16 +279,21 @@ public final class DropDown: UIView {
 			tableViewContainer.layer.cornerRadius = newValue
 			tableView.layer.cornerRadius = newValue
 		}
-		didSet { reloadAllComponents() }
+		didSet {
+			updateGlassCorners()
+			reloadAllComponents()
+		}
 	}
+
+	fileprivate var maskedCorners: CACornerMask = [
+		.layerMinXMinYCorner, .layerMaxXMinYCorner, .layerMinXMaxYCorner, .layerMaxXMaxYCorner
+	]
 
 	/**
 	Alias method for `cornerRadius` variable to avoid ambiguity.
 	*/
 	@objc public dynamic func setupCornerRadius(_ radius: CGFloat) {
-		tableViewContainer.layer.cornerRadius = radius
-		tableView.layer.cornerRadius = radius
-		reloadAllComponents()
+		cornerRadius = radius
 	}
 
 	/**
@@ -248,8 +303,10 @@ public final class DropDown: UIView {
 	*/
 	@available(iOS 11.0, *)
 	@objc public dynamic func setupMaskedCorners(_ cornerMask: CACornerMask) {
+		maskedCorners = cornerMask
 		tableViewContainer.layer.maskedCorners = cornerMask
 		tableView.layer.maskedCorners = cornerMask
+		updateGlassCorners()
 		reloadAllComponents()
 	}
 
@@ -279,8 +336,10 @@ public final class DropDown: UIView {
 	Changing the shadow opacity automatically reloads the drop down.
 	*/
 	@objc public dynamic var shadowOpacity = DPDConstant.UI.Shadow.Opacity {
-		willSet { tableViewContainer.layer.shadowOpacity = newValue }
-		didSet { reloadAllComponents() }
+		didSet {
+			updateShadowOpacity()
+			reloadAllComponents()
+		}
 	}
 
 	/**
@@ -517,6 +576,8 @@ private extension DropDown {
 	func setup() {
 		tableView.register(cellNib, forCellReuseIdentifier: DPDConstant.ReusableIdentifier.DropDownCell)
 
+		if isGlassEnabled { applyAppearanceDefaults() }
+
 		DispatchQueue.main.async {
 			//HACK: If not done in dispatch_async on main queue `setupUI` will have no effect
 			self.updateConstraintsIfNeeded()
@@ -544,13 +605,17 @@ private extension DropDown {
 		tableViewContainer.layer.cornerRadius = cornerRadius
 		tableViewContainer.layer.shadowColor = shadowColor.cgColor
 		tableViewContainer.layer.shadowOffset = shadowOffset
-		tableViewContainer.layer.shadowOpacity = shadowOpacity
 		tableViewContainer.layer.shadowRadius = shadowRadius
 
 		tableView.backgroundColor = tableViewBackgroundColor
 		tableView.separatorColor = separatorColor
 		tableView.layer.cornerRadius = cornerRadius
 		tableView.layer.masksToBounds = true
+
+		if isGlassEnabled { tableView.layer.cornerCurve = .continuous }
+
+		updateShadowOpacity()
+		updateGlassBackground()
 	}
 
 }
@@ -642,6 +707,12 @@ extension DropDown {
 			multiplier: 1,
 			constant: 0)
 		tableViewContainer.addConstraint(heightConstraint)
+
+		// Glass background, kept below the table view so the cells read on top of it
+		tableViewContainer.addSubview(backgroundEffectView)
+		backgroundEffectView.translatesAutoresizingMaskIntoConstraints = false
+
+		tableViewContainer.addUniversalConstraints(format: "|[backgroundEffectView]|", views: ["backgroundEffectView": backgroundEffectView])
 
 		// Table view
 		tableViewContainer.addSubview(tableView)
@@ -808,10 +879,68 @@ extension DropDown {
 	
 }
 
+//MARK: - Liquid Glass
+
+extension DropDown {
+
+	fileprivate func updateGlassBackground() {
+		backgroundEffectView.isHidden = !isGlassEnabled
+
+		guard isGlassEnabled else {
+			backgroundEffectView.effect = nil
+			return
+		}
+
+		backgroundEffectView.apply(style: glassStyle, tintColor: glassTintColor)
+		updateGlassCorners()
+		updateShadowOpacity()
+	}
+
+	fileprivate func updateGlassCorners() {
+		guard isGlassEnabled else { return }
+
+		backgroundEffectView.apply(cornerRadius: cornerRadius, maskedCorners: maskedCorners)
+	}
+
+	/// Native glass casts its own shadow, so the container's would double up.
+	fileprivate func updateShadowOpacity() {
+		let suppressed = isGlassEnabled && DPDGlassBackgroundView.isNativeGlassAvailable
+
+		tableViewContainer.layer.shadowOpacity = suppressed ? 0 : shadowOpacity
+	}
+
+	fileprivate func applyAppearanceDefaults() {
+		if isGlassEnabled {
+			backgroundColor = .clear
+			selectionBackgroundColor = DPDConstant.UI.Glass.SelectionBackgroundColor
+			separatorColor = DPDConstant.UI.Glass.SeparatorColor
+			cornerRadius = DPDConstant.UI.Glass.CornerRadius
+			shadowColor = DPDConstant.UI.Glass.Shadow.Color
+			shadowOffset = DPDConstant.UI.Glass.Shadow.Offset
+			shadowOpacity = DPDConstant.UI.Glass.Shadow.Opacity
+			shadowRadius = DPDConstant.UI.Glass.Shadow.Radius
+			textColor = DPDConstant.UI.Glass.TextColor
+			selectedTextColor = DPDConstant.UI.Glass.SelectedTextColor
+		} else {
+			backgroundColor = DPDConstant.UI.BackgroundColor
+			selectionBackgroundColor = DPDConstant.UI.SelectionBackgroundColor
+			separatorColor = DPDConstant.UI.SeparatorColor
+			cornerRadius = DPDConstant.UI.CornerRadius
+			shadowColor = DPDConstant.UI.Shadow.Color
+			shadowOffset = DPDConstant.UI.Shadow.Offset
+			shadowOpacity = DPDConstant.UI.Shadow.Opacity
+			shadowRadius = DPDConstant.UI.Shadow.Radius
+			textColor = DPDConstant.UI.TextColor
+			selectedTextColor = DPDConstant.UI.SelectedTextColor
+		}
+	}
+
+}
+
 //MARK: - Actions
 
 extension DropDown {
-    
+
     /**
      An Objective-C alias for the show() method which converts the returned tuple into an NSDictionary.
      
@@ -1078,7 +1207,9 @@ extension DropDown: UITableViewDataSource, UITableViewDelegate {
 		cell.selectedBackgroundColor = selectionBackgroundColor
         cell.highlightTextColor = selectedTextColor
         cell.normalTextColor = textColor
-		
+		cell.selectionCornerRadius = isGlassEnabled ? DPDConstant.UI.Glass.SelectionCornerRadius : 0
+		cell.selectionInsets = isGlassEnabled ? DPDConstant.UI.Glass.SelectionInsets : .zero
+
 		if let cellConfiguration = cellConfiguration {
 			cell.optionLabel.text = cellConfiguration(index, dataSource[index])
 		} else {

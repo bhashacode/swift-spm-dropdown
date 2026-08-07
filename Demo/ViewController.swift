@@ -147,6 +147,15 @@ class ViewController: UIViewController {
 		view.addSubview(textField)
 	}
 
+	override func viewDidAppear(_ animated: Bool) {
+		super.viewDidAppear(animated)
+
+		chooseArticleDropDown.isGlassEnabled = true
+		chooseArticleDropDown.glassStyle = .clear
+		chooseArticleDropDown.selectRow(at: 1)
+		chooseArticleDropDown.show()
+	}
+
 	//MARK: - Setup
 	
 	func setupDropDowns() {
