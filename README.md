@@ -209,6 +209,43 @@ dropDown.selectedItem // String?
 dropDown.indexForSelectedRow // Int?
 ```
 
+## Liquid Glass 🫧
+
+Drop downs render on Liquid Glass by default. On iOS 26+ this uses `UIGlassEffect`; on earlier
+versions it falls back to a blur material so the look degrades gracefully.
+
+- `isGlassEnabled`: whether the drop down renders on glass. Defaults to `DropDown.isGlassEnabled`.
+- `glassStyle`: `.regular` (default) or `.clear`. Use `.clear` over media, where the content behind should stay visible.
+- `glassTintColor`: a color blended into the glass. `nil` (default) leaves it untinted.
+
+```swift
+dropDown.glassStyle = .clear
+dropDown.glassTintColor = .systemBlue
+```
+
+To opt out globally — before creating any drop down — restoring the pre-glass appearance:
+
+```swift
+DropDown.isGlassEnabled = false
+```
+
+Or per instance:
+
+```swift
+dropDown.isGlassEnabled = false
+```
+
+Enabling glass seeds the appearance with glass-tuned defaults (clear background, larger corner
+radius, `.label` text, translucent selection), so set `isGlassEnabled` **before** customizing
+colors — toggling it re-seeds those defaults and will overwrite your values.
+
+Two behaviors change while glass is on:
+
+- `backgroundColor` defaults to `.clear` so the glass shows through. Setting it to an opaque color
+  hides the glass; use `glassTintColor` to tint the material instead.
+- On iOS 26+ the `shadow*` properties are not applied, because glass casts its own shadow. They
+  still apply on the fallback material.
+
 ## Customize UI 🖌
 
 You can customize these properties of the drop down:
@@ -259,9 +296,9 @@ DropDown.appearance().setupCornerRadius(10) // available since v2.3.6
 
 ## Requirements
 
-* Xcode 8+
-* Swift 3.0
-* iOS 8+
+* Xcode 26+ (to build against the SDK that provides Liquid Glass)
+* Swift 5.9
+* iOS 15+ (Liquid Glass renders on iOS 26+, with a blur material fallback below that)
 * ARC
 
 ## License
